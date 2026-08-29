@@ -1,0 +1,16 @@
+{
+  "id": "data-clean/dedupe-csv",
+  "suite": "data-clean",
+  "title": "Deduplicate a CSV file",
+  "prompt": "The workspace contains sales.csv with duplicate rows (two pairs of duplicates). Write sales_clean.csv containing only unique rows, sorted by id ascending, with the same header and the same column order. Do not modify sales.csv.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300
+  }
+}

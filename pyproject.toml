@@ -1,0 +1,45 @@
+[project]
+name = "harness-lab"
+version = "0.1.0"
+description = "An evaluation harness for DeepSeek Harness: benchmark agent loops, compaction, skills, and tool configurations on reproducible offline tasks."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "LvienOeria" }]
+keywords = ["deepseek", "ai-agent", "harness", "evaluation", "agent-loop"]
+dependencies = [
+  "openai>=1.50",
+  "pydantic>=2.7",
+  "pyyaml>=6.0",
+  "click>=8.1",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.36", "plotly>=5.22", "pandas>=2.2"]
+dsh = ["deepseek-harness-sdk @ git+https://github.com/deepseek-ai/deepseek-harness.git@dsh-v0.1.2-alpha.1#subdirectory=python/sdk"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[project.scripts]
+harness-lab = "harnesslab.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/harnesslab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.uv]
+package = true

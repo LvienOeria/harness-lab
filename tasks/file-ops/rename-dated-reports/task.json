@@ -1,0 +1,16 @@
+{
+  "id": "file-ops/rename-dated-reports",
+  "suite": "file-ops",
+  "title": "Normalize dated report filenames",
+  "prompt": "The \"reports\" directory contains files named report_YYYYMMDD.md. Rename each to YYYY-MM-DD-report.md (e.g. report_20240801.md becomes 2024-08-01-report.md). Keep file contents unchanged and leave no old names behind.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 16,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300
+  }
+}

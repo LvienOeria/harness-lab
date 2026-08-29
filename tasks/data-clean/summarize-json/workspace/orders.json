@@ -1,0 +1,27 @@
+[
+  {
+    "order_id": "a1",
+    "category": "books",
+    "amount": 10.0
+  },
+  {
+    "order_id": "a2",
+    "category": "games",
+    "amount": 20.0
+  },
+  {
+    "order_id": "a3",
+    "category": "books",
+    "amount": 5.0
+  },
+  {
+    "order_id": "a4",
+    "category": "figures",
+    "amount": 35.0
+  },
+  {
+    "order_id": "a5",
+    "category": "games",
+    "amount": 15.0
+  }
+]

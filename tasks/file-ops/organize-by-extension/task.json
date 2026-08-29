@@ -1,0 +1,17 @@
+{
+  "id": "file-ops/organize-by-extension",
+  "suite": "file-ops",
+  "title": "Organize incoming files by type",
+  "prompt": "The workspace contains an \"incoming\" directory with four files. Create two directories at the workspace root: \"text\" and \"data\". Move all .txt and .md files into \"text\" and all .csv and .json files into \"data\". Do not create any other files or directories. When finished, report the final tree.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 16,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300
+  },
+  "notes": "Deterministic file-tree check."
+}

@@ -1,0 +1,37 @@
+{
+  "id": "tool-route/inventory-restock",
+  "suite": "tool-route",
+  "title": "Restock low inventory items through task tools",
+  "prompt": "Use the provided tools only. Check the current inventory, then for every item whose quantity is below 5, update its quantity to exactly 20. Do not change items that are already at 5 or above. When finished, stop calling tools and report what you changed.",
+  "workspace": "workspace",
+  "grader": {"type": "python", "script": "grader.py"},
+  "limits": {"max_steps": 12, "max_output_tokens": 2048, "timeout_seconds": 300},
+  "tools": "task",
+  "task_handlers": "handlers.py",
+  "task_tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_inventory",
+        "description": "Return current inventory as a JSON object mapping item names to quantities.",
+        "parameters": {"type": "object", "properties": {}, "required": []}
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "update_stock",
+        "description": "Set the quantity for one inventory item.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": {"type": "string", "description": "Item name"},
+            "quantity": {"type": "integer", "description": "New quantity, must be >= 0"}
+          },
+          "required": ["item", "quantity"]
+        }
+      }
+    }
+  ],
+  "notes": "Forces structured function calling; file and shell tools are not exposed."
+}

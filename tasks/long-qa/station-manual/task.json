@@ -1,0 +1,16 @@
+{
+  "id": "long-qa/station-manual",
+  "suite": "long-qa",
+  "title": "Answer questions from an operations manual",
+  "prompt": "Read the file manual.md in the workspace. Answer the three questions below and write them to answers.md. Every answer must cite the relevant section number from manual.md, like \"(Section 1)\".\\n\\n1. How long do auxiliary batteries provide power in a main-reactor failure?\\n2. Which airlock is reserved for medical evac between 06:00 and 18:00?\\n3. What band does the long-range antenna use?",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300
+  }
+}

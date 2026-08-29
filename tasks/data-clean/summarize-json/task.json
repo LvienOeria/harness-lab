@@ -1,0 +1,16 @@
+{
+  "id": "data-clean/summarize-json",
+  "suite": "data-clean",
+  "title": "Summarize order totals by category",
+  "prompt": "The workspace contains orders.json, a JSON array of orders with fields order_id, category and amount. Write summary.json, a JSON object mapping each category to the total amount for that category. Use numbers, not strings. Do not modify orders.json.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 300
+  }
+}

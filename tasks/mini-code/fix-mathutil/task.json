@@ -1,0 +1,16 @@
+{
+  "id": "mini-code/fix-mathutil",
+  "suite": "mini-code",
+  "title": "Fix failing math utility functions",
+  "prompt": "The workspace contains mathutil.py and test_mathutil.py. Run the tests, read the failures, and fix mathutil.py until all tests pass. Do not change the tests.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}
