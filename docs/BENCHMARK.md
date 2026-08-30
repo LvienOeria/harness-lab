@@ -1,53 +1,56 @@
-# Benchmark report (v0.1 matrix)
+# Benchmark report (v0.2, 25 tasks)
 
 - Date: 2026-08-30
-- Model: `deepseek-v4-flash`
-- Attempts: 1 per cell
-- Tasks: 12
+- Model: `deepseek-v4-flash`, temperature=0.2, attempts=1 per cell
+- Tasks: 25 deterministic offline tasks across 5 suites
+- Skills: task-defined skills enabled by default (`csv-data-ops`, `file-organization`)
 
-| task | runner | completion | mean steps | cost |
-|---|---|---|---|---|
-| data-clean/dedupe-csv | react | 100% | 6.0 | $0.003464 |
-| data-clean/dedupe-csv | dsh | 100% | 3.0 | $0.000393 |
-| data-clean/merge-csv | react | 100% | 5.0 | $0.001963 |
-| data-clean/merge-csv | dsh | 100% | 3.0 | $0.000343 |
-| data-clean/summarize-json | react | 100% | 6.0 | $0.002479 |
-| data-clean/summarize-json | dsh | 100% | 3.0 | $0.000299 |
-| file-ops/organize-by-extension | react | 100% | 4.0 | $0.001888 |
-| file-ops/organize-by-extension | dsh | 100% | 4.0 | $0.000368 |
-| file-ops/rename-dated-reports | react | 100% | 5.0 | $0.002517 |
-| file-ops/rename-dated-reports | dsh | 100% | 6.0 | $0.000686 |
-| file-ops/write-project-summary | react | 100% | 7.0 | $0.002466 |
-| file-ops/write-project-summary | dsh | 100% | 3.0 | $0.000250 |
-| long-qa/incident-log | react | 100% | 4.0 | $0.001435 |
-| long-qa/incident-log | dsh | 100% | 3.0 | $0.000279 |
-| long-qa/station-manual | react | 100% | 4.0 | $0.001504 |
-| long-qa/station-manual | dsh | 100% | 3.0 | $0.000305 |
-| mini-code/fix-mathutil | react | 100% | 6.0 | $0.003536 |
-| mini-code/fix-mathutil | dsh | 100% | 13.0 | $0.001815 |
-| mini-code/implement-fibonacci | react | 100% | 11.0 | $0.005028 |
-| mini-code/implement-fibonacci | dsh | 100% | 10.0 | $0.001228 |
-| tool-route/inventory-restock | react | 100% | 4.0 | $0.001109 |
-| tool-route/inventory-restock | dsh | 100% | 4.0 | $0.000413 |
-| tool-route/order-approval | react | 100% | 3.0 | $0.000980 |
-| tool-route/order-approval | dsh | 100% | 14.0 | $0.005892 |
+## Runner completion
 
-## Totals
-
-| runner | tasks | completion | total cost |
+| runner | tasks | passed | notes |
 |---|---|---|---|
-| dsh | 12 | 100% | $0.012271 |
-| react | 12 | 100% | $0.028369 |
+| react | 25 | 25 | minimal ReAct baseline |
+| dsh | 25 | 25 | DeepSeek Harness `sdk-minimal` adapter |
+| react-compact | 5 measured | 4 | short tasks pass; `large-protocol` fails after compaction (see below) |
+
+## react vs dsh cost summary
+
+- `dsh` is consistently cheaper than `react` on short, tool-light tasks.
+- `react` is more token-hungry because it carries the full JSON tool schema every turn and re-plans from scratch; `dsh` benefits from its persistent session and built-in tool/context management.
+- Counter-example: `tool-route/order-approval` costs more under `dsh` (16 steps) than `react` (3 steps). Harness choice is task-dependent.
+
+Representative rows (attempts=1):
+
+| task | react steps | react cost | dsh steps | dsh cost |
+|---|---|---|---|---|
+| file-ops/organize-by-extension | 4 | $0.0015 | 4 | $0.00037 |
+| data-clean/dedupe-csv | 6 | $0.0026 | 3 | $0.00039 |
+| mini-code/fix-mathutil | 6 | $0.0035 | 10 | $0.0018 |
+| tool-route/order-approval | 3 | $0.00098 | 16 | $0.0044 |
+| long-qa/large-protocol | 9 | $0.0279 | 9 | $0.0197 |
+
+## Skills ablation (react, 6 skill-tagged tasks)
+
+Skills help data-clean tasks and slightly increase overhead on file-ops tasks:
+
+| group | mean steps | mean cost |
+|---|---|---|
+| skills off | 5.2 | $0.00210 |
+| skills on | 5.3 | $0.00246 |
+
+Conclusion for now: skills are not a universal accelerator; their value depends on whether the task matches the procedural knowledge in the skill. This is consistent with the SkillsBench finding that focused skills help, while irrelevant context hurts.
+
+## Compaction ablation
+
+- `react-compact` passes 4/4 short tasks (compaction never triggers below 12k token budget).
+- `long-qa/large-protocol` (180-section manual) passes with `react` in 9 steps at $0.0279, but `react-compact` fails with `max_steps exceeded` after 3 compactions at $0.0214.
+- Interpretation: aggressive context compaction saved ~23% cost but lost task-relevant evidence in this task. Compaction needs a better retention policy before it is enabled by default.
 
 ## Repro
 
 ```bash
 export DEEPSEEK_API_KEY=...
-uv run harness-lab run-matrix --tasks all --runners react,dsh --models deepseek-v4-flash --attempts 1
+uv run harness-lab run-matrix --tasks all --runners react --attempts 1
+uv run harness-lab run-matrix --tasks all --runners dsh --attempts 1
+uv run harness-lab run --task long-qa/large-protocol --runner react-compact --attempts 1
 ```
-
-## Notes
-
-- dsh adapter uses the pinned DeepSeek Harness Python SDK (`sdk-minimal`, developer preview).
-- dsh token accounting comes from session `assistant/message` usage events.
-- All 12 tasks pass under both harnesses at attempt=1; differences are in step count and cost, not completion.
