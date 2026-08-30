@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -141,7 +142,11 @@ def _run_shell(root: Path, command: str, timeout: int = 120) -> str:
             command,
             shell=True,
             cwd=root,
-            env={**os.environ, "PYTHONPATH": str(root)},
+            env={
+                **os.environ,
+                "PYTHONPATH": str(root),
+                "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ.get("PATH", ""),
+            },
             capture_output=True,
             text=True,
             timeout=timeout,

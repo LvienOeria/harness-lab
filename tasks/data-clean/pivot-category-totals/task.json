@@ -1,0 +1,19 @@
+{
+  "id": "data-clean/pivot-category-totals",
+  "suite": "data-clean",
+  "title": "Pivot sales by category",
+  "prompt": "Read sales.csv with columns id,category,amount. Write category_totals.csv with header category,total, one row per category, sorted by category ascending, totals as numbers.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "skills": [
+    "csv-data-ops"
+  ]
+}

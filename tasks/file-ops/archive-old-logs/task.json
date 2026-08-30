@@ -1,0 +1,19 @@
+{
+  "id": "file-ops/archive-old-logs",
+  "suite": "file-ops",
+  "title": "Archive logs older than 2024",
+  "prompt": "The logs directory contains files named YYYY-MM-DD.log. Move every file dated before 2024-01-01 into logs/archive/. Leave newer files where they are.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "skills": [
+    "file-organization"
+  ]
+}

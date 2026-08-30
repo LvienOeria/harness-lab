@@ -1,0 +1,16 @@
+{
+  "id": "mini-code/fix-date-parser",
+  "suite": "mini-code",
+  "title": "Fix a date parser",
+  "prompt": "The workspace contains dateutil.py with a broken parse_iso function and test_dateutil.py. Run the tests and fix parse_iso until all pass. Do not modify the tests.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

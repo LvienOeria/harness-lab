@@ -1,0 +1,16 @@
+{
+  "id": "mini-code/implement-wordcount",
+  "suite": "mini-code",
+  "title": "Implement word count",
+  "prompt": "The workspace contains wordcount.py with an unfinished count_words function and test_wordcount.py. Implement count_words so the tests pass. Do not modify the tests.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

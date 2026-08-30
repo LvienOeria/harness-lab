@@ -11,7 +11,7 @@ from rich.table import Table
 from .config import ModelConfig
 from .env import load_dotenv
 from .report import aggregate, render_markdown, save_records
-from .runners import DshRunner, ReActRunner
+from .runners import CompactReActRunner, DshRunner, ReActRunner
 from .tasks import list_tasks, load_task
 
 console = Console()
@@ -53,9 +53,16 @@ def _run_task(
     attempts: int,
     results_dir: str,
     graded_workspace_dir: str | None,
+    skills: tuple[str, ...] = (),
 ) -> None:
     task = load_task(task_id)
-    runner = DshRunner(model_config) if runner_name == "dsh" else ReActRunner(model_config)
+    extra_skills = None if skills is None else list(skills)
+    if runner_name == "dsh":
+        runner = DshRunner(model_config)
+    elif runner_name == "react-compact":
+        runner = CompactReActRunner(model_config, extra_skills=extra_skills)
+    else:
+        runner = ReActRunner(model_config, extra_skills=extra_skills)
     out_dir = Path(results_dir) / runner_name / model_config.model.replace("/", "-") / task_id.replace("/", "-")
     out_dir.mkdir(parents=True, exist_ok=True)
     keep_dir = Path(graded_workspace_dir) if graded_workspace_dir else None
@@ -80,7 +87,8 @@ def _run_task(
 @main.command("run")
 @click.option("--task", "task_id", required=True, help="Task id, e.g. file-ops/organize-by-extension")
 @click.option("--model", default="deepseek-v4-flash", show_default=True)
-@click.option("--runner", "runner_name", type=click.Choice(["react", "dsh"]), default="react", show_default=True)
+@click.option("--runner", "runner_name", type=click.Choice(["react", "dsh", "react-compact"]), default="react", show_default=True)
+@click.option("--skills", default="", show_default=True, help="Comma-separated skill names, or 'off' to disable task skills.")
 @click.option("--attempts", default=3, show_default=True)
 @click.option("--temperature", default=0.2, show_default=True)
 @click.option("--max-tokens", default=8_192, show_default=True)
@@ -99,8 +107,15 @@ def run_cmd(
     results_dir: str,
     env_file: str,
     graded_workspace_dir: str | None,
+    skills: str,
 ) -> None:
     """Run one task, grade each attempt, and write records/report."""
+    if skills.strip() == "":
+        skill_list = None
+    elif skills.strip() == "off":
+        skill_list = ()
+    else:
+        skill_list = tuple(s.strip() for s in skills.split(",") if s.strip())
     _run_task(
         task_id,
         _model_config(model, temperature, max_tokens, thinking, env_file),
@@ -108,12 +123,14 @@ def run_cmd(
         attempts,
         results_dir,
         graded_workspace_dir,
+        skill_list,
     )
 
 
 @main.command("run-matrix")
 @click.option("--tasks", default="all", show_default=True, help="Comma-separated task ids or 'all'.")
 @click.option("--runners", default="react,dsh", show_default=True)
+@click.option("--skills", default="", show_default=True, help="Comma-separated skills, off, or empty for task defaults.")
 @click.option("--models", default="deepseek-v4-flash", show_default=True)
 @click.option("--attempts", default=1, show_default=True)
 @click.option("--temperature", default=0.2, show_default=True)
@@ -121,7 +138,7 @@ def run_cmd(
 @click.option("--thinking/--no-thinking", default=False, show_default=True)
 @click.option("--results-dir", default="results", show_default=True)
 @click.option("--env-file", default=".env", show_default=True)
-def run_matrix_cmd(tasks, runners, models, attempts, temperature, max_tokens, thinking, results_dir, env_file):
+def run_matrix_cmd(tasks, runners, models, attempts, temperature, max_tokens, thinking, results_dir, env_file, skills):
     """Run a task x runner x model matrix and write a summary report."""
     task_ids = [t.id for t in list_tasks()] if tasks == "all" else [t.strip() for t in tasks.split(",") if t.strip()]
     summary = []
@@ -129,7 +146,13 @@ def run_matrix_cmd(tasks, runners, models, attempts, temperature, max_tokens, th
         for model in [m.strip() for m in models.split(",") if m.strip()]:
             for runner in [r.strip() for r in runners.split(",") if r.strip()]:
                 cfg = _model_config(model, temperature, max_tokens, thinking, env_file)
-                _run_task(task_id, cfg, runner, attempts, results_dir, None)
+                if skills.strip() == "":
+                    skill_list = None
+                elif skills.strip() == "off":
+                    skill_list = ()
+                else:
+                    skill_list = tuple(s.strip() for s in skills.split(",") if s.strip())
+                _run_task(task_id, cfg, runner, attempts, results_dir, None, skill_list)
                 out = Path(results_dir) / runner / model.replace("/", "-") / task_id.replace("/", "-") / "records.json"
                 if out.exists():
                     recs = json.loads(out.read_text())

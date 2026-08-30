@@ -12,5 +12,8 @@
     "max_steps": 20,
     "max_output_tokens": 4096,
     "timeout_seconds": 600
-  }
+  },
+  "skills": [
+    "csv-data-ops"
+  ]
 }

@@ -1,0 +1,16 @@
+{
+  "id": "data-clean/normalize-phones",
+  "suite": "data-clean",
+  "title": "Normalize phone numbers",
+  "prompt": "Read contacts.csv with columns id,name,phone. Write contacts_normalized.csv where phone numbers keep only digits and are formatted as +X-XXXXXXXXXX for the three rows given. Preserve id,name column order and sort by id.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

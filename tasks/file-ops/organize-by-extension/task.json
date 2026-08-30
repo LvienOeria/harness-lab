@@ -13,5 +13,8 @@
     "max_output_tokens": 4096,
     "timeout_seconds": 300
   },
-  "notes": "Deterministic file-tree check."
+  "notes": "Deterministic file-tree check.",
+  "skills": [
+    "file-organization"
+  ]
 }

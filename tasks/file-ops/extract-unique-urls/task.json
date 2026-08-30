@@ -1,0 +1,19 @@
+{
+  "id": "file-ops/extract-unique-urls",
+  "suite": "file-ops",
+  "title": "Extract unique URLs into a list",
+  "prompt": "Read links.md. Write urls.txt containing every http(s) URL found, one per line, deduplicated, sorted lexicographically. Do not modify links.md.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "skills": [
+    "file-organization"
+  ]
+}

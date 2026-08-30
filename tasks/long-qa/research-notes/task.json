@@ -1,0 +1,16 @@
+{
+  "id": "long-qa/research-notes",
+  "suite": "long-qa",
+  "title": "Answer research questions from notes",
+  "prompt": "Read notes_a.md and notes_b.md. Write answers.md answering: 1) What material did the Nereus probe discover? 2) What year did the second expedition launch? Cite the note filename for each answer.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

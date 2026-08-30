@@ -1,0 +1,60 @@
+{
+  "id": "tool-route/ticket-triage",
+  "suite": "tool-route",
+  "title": "Triage tickets with task tools",
+  "prompt": "Use only the provided tools. For each ticket id in ['t-1','t-2','t-3'], call get_ticket, then set_ticket_status to 'urgent' if severity is 'high', otherwise to 'normal'. Report the final statuses.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "tools": "task",
+  "task_handlers": "handlers.py",
+  "task_tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_ticket",
+        "description": "Return ticket severity.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "ticket_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticket_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "set_ticket_status",
+        "description": "Set ticket status.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "ticket_id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ticket_id",
+            "status"
+          ]
+        }
+      }
+    }
+  ]
+}

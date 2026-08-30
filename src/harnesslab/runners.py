@@ -11,6 +11,7 @@ from .config import ModelConfig
 from .graders import run_deterministic_grader
 from .llm import DeepSeekClient, estimate_cost_usd
 from .models import RunRecord, TaskSpec, ToolResult
+from .skills import inject_skills
 from .tasks import load_task_handlers, make_workspace, task_dir
 from .tools import WORKSPACE_TOOL_SCHEMAS, execute_workspace_tool
 
@@ -57,9 +58,10 @@ def _parse_arguments(raw: str | None) -> dict[str, Any]:
 class ReActRunner:
     """A deliberately minimal ReAct loop, used as the explainable baseline."""
 
-    def __init__(self, model: ModelConfig):
+    def __init__(self, model: ModelConfig, extra_skills: list[str] | None = None):
         self.client = DeepSeekClient(model)
         self.model_config = model
+        self.extra_skills = None if extra_skills is None else list(extra_skills)
 
     def _run_loop(self, task, workspace, record, trace_path, deadline):
         max_steps = int(task.limits.get("max_steps", 24))
@@ -133,6 +135,51 @@ class ReActRunner:
             messages.extend(_tool_result_to_message(result) for result in tool_results)
         record.error = f"max_steps exceeded ({max_steps})"
 
+    def _compact_if_needed(self, messages, record, token_budget, trace_path):
+        if token_budget <= 0 or len(messages) <= 3:
+            return
+        current_estimate = sum((len(json.dumps(m, ensure_ascii=False)) // 4) for m in messages)
+        if current_estimate < token_budget:
+            return
+        history = messages[1:]
+        prompt = (
+            "Summarize the agent conversation below into compact working memory. "
+            "Preserve the original task, files inspected or changed, current workspace state, "
+            "constraints, and next actions."
+        )
+        summary_turn = self.client.chat(
+            [
+                {"role": "system", "content": "You are a context-compaction assistant."},
+                {
+                    "role": "user",
+                    "content": f"{prompt}\n\n<conversation>\n{json.dumps(history, ensure_ascii=False)[-40_000:]}\n</conversation>",
+                },
+            ],
+            max_tokens=1_000,
+        )
+        record.input_tokens += summary_turn.input_tokens
+        record.output_tokens += summary_turn.output_tokens
+        record.compactions += 1
+        summary = summary_turn.content or ""
+        latest = messages[-1].get("content", "") if messages[-1].get("role") == "tool" else ""
+        compacted = f"[compacted working memory]\n\n{summary}"
+        if latest:
+            compacted += f"\n\nLatest tool result:\n{latest[-6_000:]}"
+        compacted += "\n\nContinue the task."
+        messages[:] = [
+            messages[0],
+            {"role": "user", "content": compacted},
+        ]
+        if trace_path is not None:
+            with trace_path.open("a", encoding="utf-8") as fh:
+                fh.write(
+                    json.dumps(
+                        {"event": "compaction", "tokens_before": record.input_tokens, "summary": summary[:2_000]},
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+
     def run(self, task, *, attempt=1, trace_dir=None, graded_workspace_dir=None):
         started = time.time()
         record = RunRecord(attempt=attempt, final_text="", passed=False, score=0.0)
@@ -165,6 +212,73 @@ class ReActRunner:
         return record
 
     run_graded = run
+
+
+class CompactReActRunner(ReActRunner):
+    """ReAct baseline with context compaction enabled after a token budget."""
+
+    def __init__(self, model: ModelConfig, extra_skills: list[str] | None = None, compact_after_tokens: int = 12_000):
+        super().__init__(model, extra_skills=extra_skills)
+        self.extra_skills = None if extra_skills is None else list(extra_skills)
+        self.compact_after_tokens = compact_after_tokens
+
+    def _run_loop(self, task, workspace, record, trace_path, deadline):
+        max_steps = int(task.limits.get("max_steps", 24))
+        task_tools = []
+        handlers = {}
+        if task.tools == "task":
+            task_tools = list(task.task_tools)
+            handlers = load_task_handlers(task)
+        else:
+            task_tools = list(WORKSPACE_TOOL_SCHEMAS)
+
+        skill_names = self.extra_skills if self.extra_skills is not None else list(task.skills)
+        messages = [
+            {"role": "system", "content": inject_skills(SYSTEM_PROMPT, skill_names)},
+            {"role": "user", "content": f"# Task: {task.title}\n\n{task.prompt}\n\nWorkspace root: {workspace}"},
+        ]
+
+        def log_trace(obj):
+            if trace_path is not None:
+                with trace_path.open("a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(obj, ensure_ascii=False) + "\n")
+
+        for _step in range(max_steps):
+            if time.time() > deadline:
+                record.error = "task timeout"
+                break
+            self._compact_if_needed(messages, record, self.compact_after_tokens, trace_path)
+            turn = self.client.chat(messages, tools=task_tools, max_tokens=int(task.limits.get("max_output_tokens", 8_192)))
+            record.input_tokens += turn.input_tokens
+            record.output_tokens += turn.output_tokens
+            record.steps += 1
+            if not turn.tool_calls:
+                record.final_text = turn.content or ""
+                record.finish_reason = turn.finish_reason
+                return
+            messages.append(_assistant_message_with_tool_calls(turn.content or "", turn.tool_calls))
+            tool_results = []
+            for tc in turn.tool_calls:
+                name = tc.function.name
+                args = _parse_arguments(tc.function.arguments)
+                ok = True
+                content = ""
+                try:
+                    if task.tools == "task":
+                        handler = handlers.get(name)
+                        if handler is None:
+                            raise ValueError(f"no handler registered for task tool {name}")
+                        content = str(handler(workspace, **args))
+                    else:
+                        content = execute_workspace_tool(workspace, name, args)
+                except Exception as exc:
+                    ok = False
+                    content = f"error: {exc}"
+                tool_results.append(ToolResult(name=name, call_id=tc.id, ok=ok, content=content))
+                record.tool_calls += 1
+                log_trace({"event": "tool_call", "name": name, "arguments": args, "ok": ok, "content": content[-4_000:]})
+            messages.extend(_tool_result_to_message(result) for result in tool_results)
+        record.error = f"max_steps exceeded ({max_steps})"
 
 
 class DshRunner:

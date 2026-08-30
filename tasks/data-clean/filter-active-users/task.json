@@ -1,0 +1,19 @@
+{
+  "id": "data-clean/filter-active-users",
+  "suite": "data-clean",
+  "title": "Filter active users to a new JSON file",
+  "prompt": "Read users.json, an array of objects with id, name and active fields. Write active_users.json containing only the objects where active is true, sorted by id ascending.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "skills": [
+    "csv-data-ops"
+  ]
+}

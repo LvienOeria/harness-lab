@@ -12,5 +12,8 @@
     "max_steps": 16,
     "max_output_tokens": 4096,
     "timeout_seconds": 300
-  }
+  },
+  "skills": [
+    "file-organization"
+  ]
 }

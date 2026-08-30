@@ -1,0 +1,16 @@
+{
+  "id": "long-qa/policy-addendum",
+  "suite": "long-qa",
+  "title": "Apply a policy addendum",
+  "prompt": "Read policy.md and addendum.md. Write decision.md stating whether request R-42 should be approved. The original policy requires manager approval for amounts over 5000. The addendum lowers the threshold to 3000 starting 2025-06-01. R-42 is dated 2025-06-10 with amount 3500 and has no manager approval.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

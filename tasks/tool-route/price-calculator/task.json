@@ -1,0 +1,82 @@
+{
+  "id": "tool-route/price-calculator",
+  "suite": "tool-route",
+  "title": "Calculate a discounted price",
+  "prompt": "Use only the provided tools. Call get_price for item 'widget', then apply_discount with the price and discount 0.15, then get_quote with the discounted amount and quantity 4. Report the quote.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "tools": "task",
+  "task_handlers": "handlers.py",
+  "task_tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_price",
+        "description": "Return item price.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "item"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "apply_discount",
+        "description": "Return price after discount.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "price": {
+              "type": "number"
+            },
+            "discount": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "price",
+            "discount"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_quote",
+        "description": "Return quote.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "unit_price": {
+              "type": "number"
+            },
+            "quantity": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "unit_price",
+            "quantity"
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -21,6 +21,7 @@ class TaskSpec(BaseModel):
     limits: dict[str, Any] = Field(default_factory=dict)
     tools: Literal["workspace", "task"] = "workspace"
     task_tools: list[dict[str, Any]] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
     task_handlers: str | None = None
     notes: str = ""
 
@@ -46,6 +47,7 @@ class RunRecord:
     cost_usd: float = 0.0
     wall_seconds: float = 0.0
     tool_calls: int = 0
+    compactions: int = 0
     finish_reason: str | None = None
     error: str | None = None
     trace_path: str | None = None
