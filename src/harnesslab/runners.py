@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import time
 from pathlib import Path
@@ -167,14 +168,111 @@ class ReActRunner:
 
 
 class DshRunner:
-    """Adapter for DeepSeek Harness (developer preview)."""
+    """Adapter for DeepSeek Harness (developer preview, pinned dsh-v0.1.2-alpha.1)."""
 
     def __init__(self, model: ModelConfig):
         self.model = model
+        self._home = Path("sessions/dsh-home").resolve()
+        self._workspace_root = Path("sessions/dsh-workspace").resolve()
+        self._home.mkdir(parents=True, exist_ok=True)
+        self._workspace_root.mkdir(parents=True, exist_ok=True)
 
-    def run(self, task, *, attempt=1, trace_dir=None, graded_workspace_dir=None):
+    def _fresh_workspace_for(self, task: TaskSpec, attempt: int) -> Path:
+        workspace = self._workspace_root / task.id.replace("/", "-") / str(attempt)
+        if workspace.exists():
+            shutil.rmtree(workspace, ignore_errors=True)
+        workspace.mkdir(parents=True)
+        fixture, tmp = make_workspace(task)
+        for item in fixture.iterdir():
+            target = workspace / item.name
+            if item.is_dir():
+                shutil.copytree(item, target)
+            else:
+                shutil.copy2(item, target)
+        shutil.rmtree(tmp, ignore_errors=True)
+        return workspace
+
+    def _run_once(self, task: TaskSpec, workspace: Path, attempt: int):
+        from deepseek_harness import DeepSeekHarness  # type: ignore
+
+        session_id = f"{task.id.replace('/', '-')}-attempt-{attempt}"
+        with DeepSeekHarness(
+            provider="deepseek-official",
+            model=self.model.model,
+            max_tokens=self.model.max_tokens,
+            cwd=str(workspace),
+            dsh_home=str(self._home),
+            profile="sdk-minimal",
+        ) as harness:
+            return harness.run(task.prompt, session_id=session_id)
+
+    def _apply_usage(self, record: RunRecord, events: list[Any]) -> None:
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            etype = event.get("type")
+            data = event.get("data", {}) if isinstance(event.get("data"), dict) else {}
+            if etype == "step/start":
+                record.steps += 1
+            elif etype == "tool/call":
+                record.tool_calls += 1
+            elif etype == "assistant/message":
+                usage = data.get("usage") or data.get("message", {}).get("usage") or {}
+                record.input_tokens += int(usage.get("inputTokens", 0) or 0)
+                record.output_tokens += int(usage.get("outputTokens", 0) or 0)
+
+    def run(
+        self,
+        task: TaskSpec,
+        *,
+        attempt: int = 1,
+        trace_dir: Path | None = None,
+        graded_workspace_dir: Path | None = None,
+    ) -> RunRecord:
+        started = time.time()
         record = RunRecord(attempt=attempt, final_text="", passed=False, score=0.0)
-        record.error = "dsh adapter not wired in v0.1; use react runner (see docs/PRD.md)"
+        workspace = self._fresh_workspace_for(task, attempt)
+        try:
+            result = None
+            try:
+                result = self._run_once(task, workspace, attempt)
+            except FileNotFoundError as exc:
+                if "runtime" not in str(exc).lower():
+                    raise
+                os.environ["DSH_RUNTIME_MODE"] = "node"
+                result = self._run_once(task, workspace, attempt)
+            record.final_text = result.final_response or ""
+            record.finish_reason = str(getattr(result, "finish_reason", None))
+            self._apply_usage(record, list(getattr(result, "events", []) or []))
+            record.cost_usd = estimate_cost_usd(self.model.model, record.input_tokens, record.output_tokens)
+            passed, details = run_deterministic_grader(task, task_dir(task.id), workspace)
+            record.passed = passed
+            record.score = float(details.get("score", 1.0 if passed else 0.0))
+            record.grader_details = details
+            if graded_workspace_dir is not None:
+                keep = graded_workspace_dir / task.id.replace("/", "-") / str(attempt)
+                keep.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(workspace, keep, dirs_exist_ok=True)
+                record.grader_details["graded_workspace"] = str(keep)
+        except Exception as exc:  # noqa: BLE001
+            record.error = f"{type(exc).__name__}: {exc}"
+        finally:
+            record.wall_seconds = time.time() - started
+            if trace_dir:
+                trace_dir.mkdir(parents=True, exist_ok=True)
+                record.trace_path = str(trace_dir / f"{task.id.replace('/', '-')}-dsh-{attempt}.txt")
+                Path(record.trace_path).write_text(
+                    json.dumps(
+                        {
+                            "final_text": record.final_text,
+                            "error": record.error,
+                            "input_tokens": record.input_tokens,
+                            "output_tokens": record.output_tokens,
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                )
         return record
 
     run_graded = run

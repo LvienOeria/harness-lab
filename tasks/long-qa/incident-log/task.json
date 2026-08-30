@@ -1,0 +1,16 @@
+{
+  "id": "long-qa/incident-log",
+  "suite": "long-qa",
+  "title": "Answer questions from an incident log",
+  "prompt": "Read incident_log.md and write answers.md answering the three questions below. Cite the incident number for each answer.\n\n1. Which engineer shut valve A when the cooling loop lost pressure?\n2. What caused the fire alarm in corridor B?\n3. How long were the greenhouse crops without light?",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

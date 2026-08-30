@@ -1,0 +1,16 @@
+{
+  "id": "mini-code/implement-fibonacci",
+  "suite": "mini-code",
+  "title": "Implement a missing Fibonacci function",
+  "prompt": "The workspace contains fibonacci.py with an unfinished function and test_fibonacci.py. Run the tests, then implement fibonacci(n) so all tests pass. Do not modify the tests.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

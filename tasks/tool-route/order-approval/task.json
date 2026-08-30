@@ -1,0 +1,82 @@
+{
+  "id": "tool-route/order-approval",
+  "suite": "tool-route",
+  "title": "Approve an order only when the customer is eligible",
+  "prompt": "Use only the provided tools. For order o-1 belonging to customer c-7, call check_eligibility for c-7, then call approve_order if eligible or reject_order if not. Do the same for order o-2 belonging to customer c-8. When finished, stop calling tools and report the two decisions.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  },
+  "tools": "task",
+  "task_handlers": "handlers.py",
+  "task_tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "check_eligibility",
+        "description": "Return whether a customer is eligible.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "customer_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "customer_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "approve_order",
+        "description": "Approve an order for a customer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "customer_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "order_id",
+            "customer_id"
+          ]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "reject_order",
+        "description": "Reject an order for a customer.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "order_id": {
+              "type": "string"
+            },
+            "customer_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "order_id",
+            "customer_id"
+          ]
+        }
+      }
+    }
+  ]
+}

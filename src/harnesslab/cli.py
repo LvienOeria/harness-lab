@@ -111,5 +111,43 @@ def run_cmd(
     )
 
 
+@main.command("run-matrix")
+@click.option("--tasks", default="all", show_default=True, help="Comma-separated task ids or 'all'.")
+@click.option("--runners", default="react,dsh", show_default=True)
+@click.option("--models", default="deepseek-v4-flash", show_default=True)
+@click.option("--attempts", default=1, show_default=True)
+@click.option("--temperature", default=0.2, show_default=True)
+@click.option("--max-tokens", default=8_192, show_default=True)
+@click.option("--thinking/--no-thinking", default=False, show_default=True)
+@click.option("--results-dir", default="results", show_default=True)
+@click.option("--env-file", default=".env", show_default=True)
+def run_matrix_cmd(tasks, runners, models, attempts, temperature, max_tokens, thinking, results_dir, env_file):
+    """Run a task x runner x model matrix and write a summary report."""
+    task_ids = [t.id for t in list_tasks()] if tasks == "all" else [t.strip() for t in tasks.split(",") if t.strip()]
+    summary = []
+    for task_id in task_ids:
+        for model in [m.strip() for m in models.split(",") if m.strip()]:
+            for runner in [r.strip() for r in runners.split(",") if r.strip()]:
+                cfg = _model_config(model, temperature, max_tokens, thinking, env_file)
+                _run_task(task_id, cfg, runner, attempts, results_dir, None)
+                out = Path(results_dir) / runner / model.replace("/", "-") / task_id.replace("/", "-") / "records.json"
+                if out.exists():
+                    recs = json.loads(out.read_text())
+                    passes = sum(1 for r in recs if r.get("passed"))
+                    steps = sum(r.get("steps", 0) for r in recs) / max(1, len(recs))
+                    cost = sum(r.get("cost_usd", 0.0) for r in recs)
+                    summary.append({
+                        "task": task_id, "model": model, "runner": runner,
+                        "completion": passes / max(1, len(recs)), "mean_steps": round(steps, 2),
+                        "total_cost_usd": round(cost, 6), "errors": [r.get("error") for r in recs if r.get("error")],
+                    })
+    root = Path(results_dir) / "matrix-summary.json"
+    root.write_text(json.dumps(summary, indent=2))
+    md = ["# Matrix summary", "", "| task | model | runner | completion | steps | cost |", "|---|---|---|---|---|---|"]
+    for row in summary:
+        md.append(f"| {row['task']} | {row['model']} | {row['runner']} | {row['completion']} | {row['mean_steps']} | {row['total_cost_usd']} |")
+    (Path(results_dir) / "matrix-summary.md").write_text("\n".join(md) + "\n")
+    console.print(f"[green]matrix done[/green] -> {root}")
+
 if __name__ == "__main__":
     main()

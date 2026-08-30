@@ -1,0 +1,16 @@
+{
+  "id": "file-ops/write-project-summary",
+  "suite": "file-ops",
+  "title": "Write a project summary from loose notes",
+  "prompt": "Read the files in the notes directory. Write project_summary.md at the workspace root containing a '## Name' line with the project name from name.txt, a '## Owner' line with the owner from owner.txt, and a '## Status' line with the status from status.txt. Use exactly those three headers in that order.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}

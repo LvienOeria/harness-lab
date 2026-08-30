@@ -1,0 +1,16 @@
+{
+  "id": "data-clean/merge-csv",
+  "suite": "data-clean",
+  "title": "Merge two CSV files by id",
+  "prompt": "The workspace contains people.csv (id,name) and cities.csv (id,city). Write merged.csv with header id,name,city containing the inner join of the two files on id, sorted by id ascending.",
+  "workspace": "workspace",
+  "grader": {
+    "type": "python",
+    "script": "grader.py"
+  },
+  "limits": {
+    "max_steps": 20,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 600
+  }
+}
